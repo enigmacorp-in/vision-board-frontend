@@ -2,6 +2,12 @@
 
 import { useState, useRef } from 'react';
 import axios from 'axios';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { Montserrat, Playfair_Display } from 'next/font/google';
+
+const montserrat = Montserrat({ subsets: ['latin'] });
+const playfair = Playfair_Display({ subsets: ['latin'] });
 
 interface VisionBoard {
   _id: string;
@@ -14,228 +20,166 @@ interface VisionBoard {
 }
 
 export default function Home() {
-  const [size, setSize] = useState('normal');
-  const [goals, setGoals] = useState('');
+  const [goals, setGoals] = useState<string[]>(['']);
+  const [size, setSize] = useState<string>('normal');
   const [loading, setLoading] = useState(false);
-  const [visionBoard, setVisionBoard] = useState<VisionBoard | null>(null);
-  const [error, setError] = useState('');
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedBoard, setGeneratedBoard] = useState<VisionBoard | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+
+  const handleGoalChange = (index: number, value: string) => {
+    const newGoals = [...goals];
+    newGoals[index] = value;
+    setGoals(newGoals);
+  };
+
+  const addGoal = () => {
+    setGoals([...goals, '']);
+  };
+
+  const removeGoal = (index: number) => {
+    const newGoals = goals.filter((_, i) => i !== index);
+    setGoals(newGoals);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
-
+    setError(null);
+    
     try {
-      // Split goals into array and filter out empty lines
-      const goalsArray = goals
-        .split('\n')
-        .map(goal => goal.trim())
-        .filter(goal => goal !== '');
-
-      if (goalsArray.length === 0) {
-        setError('Please enter at least one goal');
-        setLoading(false);
-        return;
+      const filteredGoals = goals.filter(goal => goal.trim() !== '');
+      if (filteredGoals.length === 0) {
+        throw new Error('Please add at least one goal');
       }
 
       const response = await axios.post(`${process.env.BACKEND_URL}/api/vision-board`, {
-        size,
-        goals: goalsArray
-      }, {
-        signal: abortControllerRef.current.signal
+        goals: filteredGoals,
+        size
       });
 
-      setVisionBoard(response.data);
+      setGeneratedBoard(response.data);
     } catch (err: any) {
-      if (axios.isCancel(err)) {
-        setError('Request cancelled');
-      } else {
-        setError(err.response?.data?.message || 'Failed to create vision board. Please try again.');
-        console.error('Error:', err);
-      }
+      setError(err.response?.data?.message || err.message || 'Something went wrong');
     } finally {
       setLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
-  const handleCancel = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-  };
-
-  const handleDownload = async () => {
-    if (!visionBoard?.imageUrl) return;
+  const downloadImage = async () => {
+    if (!generatedBoard) return;
     
-    try {
-      // For base64 images, we can download directly
-      const a = document.createElement('a');
-      a.href = visionBoard.imageUrl;
-      a.download = `vision-board-${new Date().toISOString().split('T')[0]}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error('Error downloading image:', err);
-      setError('Failed to download vision board. Please try again.');
-    }
-  };
-
-  // Helper function to get aspect ratio and max height classes
-  const getImageContainerClasses = (size: string) => {
-    switch (size) {
-      case 'phone':
-        return {
-          aspect: 'aspect-[9/16]',
-          container: 'max-w-[360px]' // This will make phone wallpaper 360x640
-        };
-      case 'laptop':
-        return {
-          aspect: 'aspect-[16/9]',
-          container: 'w-full' // Full width for laptop
-        };
-      default:
-        return {
-          aspect: 'aspect-square',
-          container: 'w-full' // Full width for square
-        };
-    }
+    const link = document.createElement('a');
+    link.href = generatedBoard.imageUrl;
+    link.download = `vision-board-${new Date().getTime()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-br from-purple-50 to-pink-50">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8 text-purple-800">
-          2025 Vision Board Creator
-        </h1>
-
-        <div className="bg-white rounded-lg shadow-xl p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Choose Your Vision Board Format
-              </label>
-              <p className="text-sm text-gray-600 mb-3">
-                Select the perfect size for where you'll display your vision board
-              </p>
-              <select
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
-              >
-                <option value="phone" className="text-gray-900">Phone Wallpaper (Vertical 9:16)</option>
-                <option value="laptop" className="text-gray-900">Laptop Wallpaper (Horizontal 16:9)</option>
-                <option value="normal" className="text-gray-900">Square Format (1:1)</option>
-              </select>
-              <p className="mt-2 text-sm text-gray-500">
-                {size === 'phone' && 'Perfect for phone backgrounds and mobile device wallpapers'}
-                {size === 'laptop' && 'Ideal for desktop and laptop computer wallpapers'}
-                {size === 'normal' && 'Great for social media posts and general purpose'}
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-2">
-                Envision Your 2025
-              </label>
-              <p className="text-sm text-gray-600 mb-3">
-                What do you want to manifest in your life? Share your dreams, aspirations, and the life you want to create.
-                Each line will be a piece of your vision board.
-              </p>
-              <textarea
-                value={goals}
-                onChange={(e) => setGoals(e.target.value)}
-                rows={5}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900 placeholder-gray-500"
-                placeholder="Example:
-Living in my dream beach house
-Building a successful online business
-Traveling to exotic destinations
-Maintaining a healthy lifestyle
-Creating meaningful connections"
-                required
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50"
-              >
-                {loading ? 'Creating your vision board...' : 'Create Vision Board'}
-              </button>
-              {loading && (
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-
-          {error && (
-            <div className="mt-4 text-red-600 text-center font-medium">
-              {error}
-            </div>
-          )}
-
-          {(loading || visionBoard) && (
-            <div className="mt-8 border-t pt-8">
-              <h2 className="text-2xl font-semibold text-center mb-4 text-gray-800">Your Vision Board</h2>
-              
-              <div className={`relative rounded-lg overflow-hidden shadow-lg mx-auto ${getImageContainerClasses(size).container}`}>
-                <div className={`${getImageContainerClasses(size).aspect} bg-gray-50 relative`}>
-                  {visionBoard && (
-                    <img
-                      src={visionBoard.imageUrl}
-                      alt="Vision Board"
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
-                  )}
-                  
-                  {loading && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                      <div className="text-center text-white px-4">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
-                        <div className="text-lg font-medium">Creating your vision board...</div>
-                        <div className="text-sm mt-2">This may take a minute</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {visionBoard && !loading && (
-                <div className="space-y-2 mt-4">
-                  <button
-                    onClick={handleDownload}
-                    className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                  >
-                    Download Vision Board
-                  </button>
-                  <a
-                    href={visionBoard.originalImageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-center text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    View Original Image
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
+    <div className={`min-h-screen flex flex-col ${montserrat.className}`}>
+      <Header />
+      
+      {/* Hero Section */}
+      <section className="bg-gradient-to-b from-purple-50 to-white py-20 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className={`${playfair.className} text-5xl md:text-6xl font-bold text-gray-800 mb-6`}>
+            Transform Your Dreams into Reality
+          </h1>
+          <p className="text-xl text-gray-700 mb-8 max-w-3xl mx-auto font-medium">
+            Create stunning vision boards powered by AI that inspire and motivate you to achieve your goals.
+          </p>
+          <a href="/create" className="bg-purple-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg">
+            Create Your Vision Board
+          </a>
         </div>
-      </div>
-    </main>
+      </section>
+
+      {/* Why Vision Boards Section */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className={`${playfair.className} text-4xl font-bold text-center mb-16 text-gray-800`}>
+            Why Vision Boards Matter
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Visualization Power</h3>
+              <p className="text-gray-700 font-medium">
+                Seeing your goals daily helps program your brain to recognize resources that will help you achieve them.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Motivation Boost</h3>
+              <p className="text-gray-700 font-medium">
+                Visual reminders of your goals keep you motivated and focused on what matters most.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold mb-4 text-gray-800">Clarity & Focus</h3>
+              <p className="text-gray-700 font-medium">
+                Vision boards help clarify your goals and keep you focused on your priorities.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-20 px-6 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className={`${playfair.className} text-4xl font-bold text-center mb-16 text-gray-800`}>
+            How It Works
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <span className="text-2xl font-bold text-purple-600">1</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-gray-800">Define Your Goals</h3>
+              <p className="text-gray-700 font-medium">Write down your aspirations and dreams</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <span className="text-2xl font-bold text-purple-600">2</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-gray-800">Choose Your Style</h3>
+              <p className="text-gray-700 font-medium">Select a layout that resonates with you</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <span className="text-2xl font-bold text-purple-600">3</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-gray-800">AI Generation</h3>
+              <p className="text-gray-700 font-medium">Our AI creates your personalized board</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <span className="text-2xl font-bold text-purple-600">4</span>
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-gray-800">Download & Share</h3>
+              <p className="text-gray-700 font-medium">Get your vision board in high quality</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 }

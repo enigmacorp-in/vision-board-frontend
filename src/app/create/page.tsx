@@ -62,7 +62,13 @@ export default function CreateVisionBoard() {
 
       setGeneratedBoard(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Something went wrong');
+      if (err.response?.status === 429) {
+        const resetTime = new Date(err.response.data.nextAllowedRequest * 1000);
+        const waitMinutes = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+        setError(`Rate limit exceeded. Please wait ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''} before trying again.`);
+      } else {
+        setError(err.response?.data?.message || err.message || 'Something went wrong');
+      }
     } finally {
       setLoading(false);
     }
@@ -194,8 +200,19 @@ export default function CreateVisionBoard() {
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-                  {error}
+                <div className={`p-4 rounded-lg ${
+                  error.includes('Rate limit') 
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                    : 'bg-red-50 text-red-600'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {error.includes('Rate limit') && (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {error}
+                  </div>
                 </div>
               )}
 

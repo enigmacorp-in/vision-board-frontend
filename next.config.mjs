@@ -14,7 +14,7 @@ const nextConfig = {
   },
   // Environment variables that will be exposed to the browser
   env: {
-    BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:3001',
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001',
   },
 };
 

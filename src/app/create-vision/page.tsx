@@ -55,7 +55,7 @@ export default function CreateVisionBoard() {
         throw new Error('Please add at least one goal');
       }
 
-      const response = await axios.post(`${process.env.BACKEND_URL}/api/vision-board`, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vision-board`, {
         goals: filteredGoals,
         size
       });
@@ -77,12 +77,7 @@ export default function CreateVisionBoard() {
   const downloadImage = async () => {
     if (!generatedBoard) return;
     
-    const link = document.createElement('a');
-    link.href = generatedBoard.imageUrl;
-    link.download = `vision-board-${new Date().getTime()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.open(generatedBoard.imageUrl, '_blank');
   };
 
   const LoadingAnimation = () => (

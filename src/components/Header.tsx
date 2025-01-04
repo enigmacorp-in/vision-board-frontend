@@ -5,20 +5,18 @@ const Header = () => {
     <header className="bg-gradient-to-r from-purple-700 to-indigo-700 text-white py-4 px-6 shadow-lg">
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold font-serif text-white">
-          VisionBoard AI
+          Enigma AI
         </Link>
         <div className="space-x-6">
           <Link href="/" className="text-white hover:text-purple-100 transition-colors font-medium">
             Home
           </Link>
-          <Link href="/create" className="text-white hover:text-purple-100 transition-colors font-medium">
-            Create
+          <Link href="/create-vision" className="text-white hover:text-purple-100 transition-colors font-medium">
+            Vision Board
           </Link>
-          {/* Gallery temporarily disabled - Uncomment when ready to re-enable
-          <Link href="/gallery" className="text-white hover:text-purple-100 transition-colors font-medium">
-            Gallery
+          <Link href="/create-image" className="text-white hover:text-purple-100 transition-colors font-medium">
+            Text to Image
           </Link>
-          */}
           <Link href="/about" className="text-white hover:text-purple-100 transition-colors font-medium">
             About
           </Link>

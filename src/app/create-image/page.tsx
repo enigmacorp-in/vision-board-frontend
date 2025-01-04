@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Montserrat, Playfair_Display } from 'next/font/google';
@@ -17,6 +17,11 @@ interface GeneratedImage {
   prompt: string;
   imageUrl: string;
   createdAt: string;
+}
+
+interface ErrorResponse {
+  message: string;
+  nextAllowedRequest?: number;
 }
 
 export default function CreateImage() {

@@ -1,39 +1,35 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Montserrat, Playfair_Display } from 'next/font/google';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 const playfair = Playfair_Display({ subsets: ['latin'] });
 
 interface VisionBoard {
   _id: string;
-  size: string;
   goals: string[];
   imageUrl: string;
-  originalImageUrl: string;
-  base64Image: string;
   createdAt: string;
+}
+
+interface ErrorResponse {
+  message: string;
+  nextAllowedRequest?: number;
 }
 
 export default function CreateVisionBoard() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(['']);
-  const [size, setSize] = useState<string>('normal');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedBoard, setGeneratedBoard] = useState<VisionBoard | null>(null);
-
-  const handleGoalChange = (index: number, value: string) => {
-    const newGoals = [...goals];
-    newGoals[index] = value;
-    setGoals(newGoals);
-  };
+  const [visionBoard, setVisionBoard] = useState<VisionBoard | null>(null);
 
   const addGoal = () => {
     setGoals([...goals, '']);
@@ -44,30 +40,39 @@ export default function CreateVisionBoard() {
     setGoals(newGoals);
   };
 
+  const updateGoal = (index: number, value: string) => {
+    const newGoals = [...goals];
+    newGoals[index] = value;
+    setGoals(newGoals);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
-      const filteredGoals = goals.filter(goal => goal.trim() !== '');
-      if (filteredGoals.length === 0) {
+      const nonEmptyGoals = goals.filter(goal => goal.trim());
+      if (nonEmptyGoals.length === 0) {
         throw new Error('Please add at least one goal');
       }
 
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vision-board`, {
-        goals: filteredGoals,
-        size
+      const response = await axios.post<VisionBoard>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vision-board`, {
+        goals: nonEmptyGoals,
       });
 
-      setGeneratedBoard(response.data);
-    } catch (err: any) {
-      if (err.response?.status === 429) {
-        const resetTime = new Date(err.response.data.nextAllowedRequest * 1000);
-        const waitMinutes = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-        setError(`Rate limit exceeded. Please wait ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''} before trying again.`);
+      setVisionBoard(response.data);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 429) {
+          const resetTime = new Date(err.response.data.nextAllowedRequest * 1000);
+          const waitMinutes = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+          setError(`Rate limit exceeded. Please wait ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''} before trying again.`);
+        } else {
+          setError(err.response?.data?.message || err.message || 'Something went wrong');
+        }
       } else {
-        setError(err.response?.data?.message || err.message || 'Something went wrong');
+        setError('An unexpected error occurred');
       }
     } finally {
       setLoading(false);
@@ -75,9 +80,9 @@ export default function CreateVisionBoard() {
   };
 
   const downloadImage = async () => {
-    if (!generatedBoard) return;
+    if (!visionBoard) return;
     
-    window.open(generatedBoard.imageUrl, '_blank');
+    window.open(visionBoard.imageUrl, '_blank');
   };
 
   const LoadingAnimation = () => (
@@ -97,7 +102,7 @@ export default function CreateVisionBoard() {
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">Creating Your Vision Board</h3>
           <p className="text-gray-600">
-            Our AI is carefully crafting your personalized vision board...
+            Our AI is carefully crafting your vision board...
           </p>
         </div>
       </motion.div>
@@ -124,58 +129,28 @@ export default function CreateVisionBoard() {
               Create Your Vision Board
             </h1>
             <p className="text-gray-700 text-lg font-medium">
-              Transform your goals into a beautiful, inspiring vision board.
+              Transform your goals and aspirations into a beautiful vision board.
             </p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Size Selection */}
               <div>
-                <label className="block text-lg font-semibold mb-4 text-gray-800">Choose Your Board Size</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['phone', 'laptop', 'normal'].map((sizeOption) => (
-                    <button
-                      key={sizeOption}
-                      type="button"
-                      onClick={() => setSize(sizeOption)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
-                        size === sizeOption
-                          ? 'border-purple-600 bg-purple-50 text-purple-700 font-medium'
-                          : 'border-gray-200 hover:border-purple-300 text-gray-700'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <div className="font-medium capitalize mb-1">{sizeOption}</div>
-                        <div className="text-sm text-gray-600">
-                          {sizeOption === 'phone' && 'Perfect for mobile wallpapers'}
-                          {sizeOption === 'laptop' && 'Ideal for desktop backgrounds'}
-                          {sizeOption === 'normal' && 'Classic square format'}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Goals Input */}
-              <div>
-                <label className="block text-lg font-semibold mb-4 text-gray-800">Enter Your Goals</label>
+                <label className="block text-lg font-semibold mb-4 text-gray-800">Your Goals</label>
                 <div className="space-y-4">
                   {goals.map((goal, index) => (
                     <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
+                      <textarea
                         value={goal}
-                        onChange={(e) => handleGoalChange(index, e.target.value)}
+                        onChange={(e) => updateGoal(index, e.target.value)}
                         placeholder="Enter your goal..."
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-700 placeholder-gray-500"
+                        className="flex-grow p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-700 placeholder-gray-500"
                       />
                       {goals.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeGoal(index)}
-                          className="p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-red-500 hover:text-red-600"
                         >
                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -184,14 +159,17 @@ export default function CreateVisionBoard() {
                       )}
                     </div>
                   ))}
-                  <button
-                    type="button"
-                    onClick={addGoal}
-                    className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-300 hover:text-purple-600 transition-colors font-medium"
-                  >
-                    + Add Another Goal
-                  </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={addGoal}
+                  className="mt-4 text-purple-600 hover:text-purple-700 font-medium flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Another Goal
+                </button>
               </div>
 
               {error && (
@@ -218,36 +196,29 @@ export default function CreateVisionBoard() {
                   loading ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
                 }`}
               >
-                {loading ? 'Generating Your Vision Board...' : 'Generate Vision Board'}
+                {loading ? 'Creating Your Vision Board...' : 'Create Vision Board'}
               </button>
             </form>
 
-            {/* Generated Vision Board Display */}
-            {generatedBoard && (
+            {visionBoard && (
               <div className="mt-12 space-y-6">
                 <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Your Vision Board</h3>
-                <div className="relative rounded-lg overflow-hidden shadow-xl">
-                  <img
-                    src={generatedBoard.imageUrl}
-                    alt="Generated Vision Board"
-                    className="w-full h-auto"
+                <div className="relative rounded-lg overflow-hidden shadow-xl aspect-[4/3]">
+                  <Image
+                    src={visionBoard.imageUrl}
+                    alt="Your Vision Board"
+                    fill
+                    className="object-cover"
+                    unoptimized // Since we're using external URLs
                   />
                 </div>
-                <div className="flex justify-center gap-4">
+                <div className="flex justify-center">
                   <button
                     onClick={downloadImage}
                     className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-md font-medium"
                   >
                     Download Vision Board
                   </button>
-                  {/* Gallery button temporarily removed - Restore when gallery feature is re-enabled
-                  <button
-                    onClick={() => router.push('/gallery')}
-                    className="bg-white text-purple-700 border-2 border-purple-600 px-8 py-3 rounded-lg hover:bg-purple-50 transition-colors shadow-md font-medium"
-                  >
-                    View Gallery
-                  </button>
-                  */}
                 </div>
               </div>
             )}

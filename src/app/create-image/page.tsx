@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Montserrat, Playfair_Display } from 'next/font/google';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 const playfair = Playfair_Display({ subsets: ['latin'] });
@@ -40,13 +41,17 @@ export default function CreateImage() {
       });
 
       setGeneratedImage(response.data);
-    } catch (err: any) {
-      if (err.response?.status === 429) {
-        const resetTime = new Date(err.response.data.nextAllowedRequest * 1000);
-        const waitMinutes = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
-        setError(`Rate limit exceeded. Please wait ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''} before trying again.`);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 429) {
+          const resetTime = new Date(err.response.data.nextAllowedRequest * 1000);
+          const waitMinutes = Math.ceil((resetTime.getTime() - Date.now()) / 60000);
+          setError(`Rate limit exceeded. Please wait ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''} before trying again.`);
+        } else {
+          setError(err.response?.data?.message || err.message || 'Something went wrong');
+        }
       } else {
-        setError(err.response?.data?.message || err.message || 'Something went wrong');
+        setError('An unexpected error occurred');
       }
     } finally {
       setLoading(false);
@@ -109,7 +114,6 @@ export default function CreateImage() {
 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Prompt Input */}
               <div>
                 <label className="block text-lg font-semibold mb-4 text-gray-800">Describe Your Image</label>
                 <textarea
@@ -148,15 +152,16 @@ export default function CreateImage() {
               </button>
             </form>
 
-            {/* Generated Image Display */}
             {generatedImage && (
               <div className="mt-12 space-y-6">
                 <h3 className="text-2xl font-bold text-center mb-6 text-gray-800">Your Generated Image</h3>
-                <div className="relative rounded-lg overflow-hidden shadow-xl">
-                  <img
+                <div className="relative rounded-lg overflow-hidden shadow-xl aspect-square">
+                  <Image
                     src={generatedImage.imageUrl}
-                    alt="Generated Image"
-                    className="w-full h-auto"
+                    alt={generatedImage.prompt}
+                    fill
+                    className="object-cover"
+                    unoptimized // Since we're using external URLs
                   />
                 </div>
                 <div className="flex justify-center">

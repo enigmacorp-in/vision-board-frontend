@@ -1,12 +1,12 @@
-import { Montserrat, Playfair_Display } from 'next/font/google';
+import type { Metadata } from 'next';
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
-const playfair = Playfair_Display({ subsets: ['latin'] });
 
-export const metadata = {
-  title: 'VisionBoard AI - Transform Your Dreams into Reality',
-  description: 'Create stunning AI-powered vision boards to visualize and achieve your goals.',
+export const metadata: Metadata = {
+  title: 'Enigma AI',
+  description: 'Transform your ideas into stunning visuals with AI.',
 };
 
 export default function RootLayout({

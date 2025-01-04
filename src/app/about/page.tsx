@@ -15,10 +15,6 @@ interface FeedbackSubmission {
   suggestion: string;
 }
 
-interface ErrorResponse {
-  message: string;
-}
-
 export default function About() {
   const [email, setEmail] = useState('');
   const [suggestion, setSuggestion] = useState('');
@@ -37,7 +33,7 @@ export default function About() {
         throw new Error('Please fill in all fields');
       }
 
-      const response = await axios.post<FeedbackSubmission>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/feedback`, {
+      await axios.post<FeedbackSubmission>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/feedback`, {
         email: email.trim(),
         suggestion: suggestion.trim(),
       });

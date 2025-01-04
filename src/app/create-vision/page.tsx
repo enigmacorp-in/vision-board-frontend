@@ -19,11 +19,6 @@ interface VisionBoard {
   createdAt: string;
 }
 
-interface ErrorResponse {
-  message: string;
-  nextAllowedRequest?: number;
-}
-
 export default function CreateVisionBoard() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(['']);

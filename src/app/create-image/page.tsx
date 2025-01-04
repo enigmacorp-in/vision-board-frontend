@@ -19,11 +19,6 @@ interface GeneratedImage {
   createdAt: string;
 }
 
-interface ErrorResponse {
-  message: string;
-  nextAllowedRequest?: number;
-}
-
 export default function CreateImage() {
   const router = useRouter();
   const [prompt, setPrompt] = useState('');

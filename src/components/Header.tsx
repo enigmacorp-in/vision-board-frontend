@@ -14,9 +14,11 @@ const Header = () => {
           <Link href="/create" className="text-white hover:text-purple-100 transition-colors font-medium">
             Create
           </Link>
+          {/* Gallery temporarily disabled - Uncomment when ready to re-enable
           <Link href="/gallery" className="text-white hover:text-purple-100 transition-colors font-medium">
             Gallery
           </Link>
+          */}
           <Link href="/about" className="text-white hover:text-purple-100 transition-colors font-medium">
             About
           </Link>

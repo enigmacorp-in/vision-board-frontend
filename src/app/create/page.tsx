@@ -245,12 +245,14 @@ export default function CreateVisionBoard() {
                   >
                     Download Vision Board
                   </button>
+                  {/* Gallery button temporarily removed - Restore when gallery feature is re-enabled
                   <button
                     onClick={() => router.push('/gallery')}
                     className="bg-white text-purple-700 border-2 border-purple-600 px-8 py-3 rounded-lg hover:bg-purple-50 transition-colors shadow-md font-medium"
                   >
                     View Gallery
                   </button>
+                  */}
                 </div>
               </div>
             )}

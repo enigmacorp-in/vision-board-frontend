@@ -22,6 +22,7 @@ interface VisionBoard {
 export default function CreateVisionBoard() {
   const router = useRouter();
   const [goals, setGoals] = useState<string[]>(['']);
+  const [size, setSize] = useState<string>('normal');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [visionBoard, setVisionBoard] = useState<VisionBoard | null>(null);
@@ -54,6 +55,7 @@ export default function CreateVisionBoard() {
 
       const response = await axios.post<VisionBoard>(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/vision-board`, {
         goals: nonEmptyGoals,
+        size,
       });
 
       setVisionBoard(response.data);
@@ -130,6 +132,33 @@ export default function CreateVisionBoard() {
 
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
+              <div>
+                <label className="block text-lg font-semibold mb-4 text-gray-800">Choose Your Board Size</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['phone', 'laptop', 'normal'].map((sizeOption) => (
+                    <button
+                      key={sizeOption}
+                      type="button"
+                      onClick={() => setSize(sizeOption)}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        size === sizeOption
+                          ? 'border-purple-600 bg-purple-50 text-purple-700 font-medium'
+                          : 'border-gray-200 hover:border-purple-300 text-gray-700'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium capitalize mb-1">{sizeOption}</div>
+                        <div className="text-sm text-gray-600">
+                          {sizeOption === 'phone' && 'Perfect for mobile wallpapers'}
+                          {sizeOption === 'laptop' && 'Ideal for desktop backgrounds'}
+                          {sizeOption === 'normal' && 'Classic square format'}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-lg font-semibold mb-4 text-gray-800">Your Goals</label>
                 <div className="space-y-4">

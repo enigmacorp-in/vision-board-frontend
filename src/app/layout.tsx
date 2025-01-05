@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Montserrat } from 'next/font/google';
 import './globals.css';
+import { CSPostHogProvider } from './providers';
 
 const montserrat = Montserrat({ subsets: ['latin'] });
 
@@ -16,7 +17,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={montserrat.className}>{children}</body>
+      <CSPostHogProvider>
+        <body className={montserrat.className}>
+          {children}
+        </body>
+      </CSPostHogProvider>
     </html>
   );
 }
